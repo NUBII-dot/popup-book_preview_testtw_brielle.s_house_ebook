@@ -24,8 +24,7 @@ const FLIP_DURATION = 1450;
 const EDGE_DURATION = 1400;
 
 /*
-  允許動畫中繼續按按鈕。
-  這裡不是同時重疊翻頁，而是排隊接著翻，動畫速度不變。
+  動畫中可以繼續按，會排隊接著翻
 */
 const MAX_QUEUE = 8;
 
@@ -37,6 +36,10 @@ let objectUrls = [];
 
 let touchStartX = 0;
 let touchStartY = 0;
+
+let resizeTimer = null;
+let activeAnimations = [];
+let transitionToken = 0;
 
 book.className = "single";
 book.innerHTML = `<div class="loading">PDF 載入中...</div>`;
@@ -278,6 +281,48 @@ function processQueue() {
   moveByDelta(delta);
 }
 
+function cleanupFloatingLayers() {
+  transitionToken++;
+
+  document
+    .querySelectorAll(".flip-layer, .under-layer, .fixed-sheet-layer")
+    .forEach((el) => {
+      el.remove();
+    });
+
+  activeAnimations.forEach((animation) => {
+    try {
+      animation.cancel();
+    } catch (e) {}
+  });
+
+  activeAnimations = [];
+
+  book.style.visibility = "visible";
+  book.style.transition = "none";
+
+  isAnimating = false;
+  queuedDelta = 0;
+
+  if (spreads.length > 0) {
+    renderCurrentSpread();
+  }
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      book.style.transition = "";
+    });
+  });
+}
+
+function handleViewportChange() {
+  clearTimeout(resizeTimer);
+
+  resizeTimer = setTimeout(() => {
+    cleanupFloatingLayers();
+  }, 160);
+}
+
 function goToSpread(targetIndex, direction) {
   const oldSpread = spreads[currentIndex];
   const targetSpread = spreads[targetIndex];
@@ -292,11 +337,9 @@ function goToSpread(targetIndex, direction) {
   }
 }
 
-/*
-  內頁 → 內頁：
-  保留雙面紙張翻頁效果。
-*/
 function turnSpreadPage(targetIndex, direction) {
+  const runToken = ++transitionToken;
+
   isAnimating = true;
 
   const oldSpread = spreads[currentIndex];
@@ -362,11 +405,17 @@ function turnSpreadPage(targetIndex, direction) {
     }
   );
 
+  activeAnimations.push(animation);
+
   animation.finished
     .catch(() => {})
     .then(() => {
+      if (runToken !== transitionToken) return;
+
       underLayer.remove();
       flipLayer.remove();
+
+      removeAnimation(animation);
 
       currentIndex = targetIndex;
 
@@ -378,11 +427,9 @@ function turnSpreadPage(targetIndex, direction) {
     });
 }
 
-/*
-  封面 → 內頁、內頁 → 封底：
-  修正重複封面 / 封底、錯位與結束後彈跳。
-*/
 function turnEdgePage(targetIndex, direction) {
+  const runToken = ++transitionToken;
+
   isAnimating = true;
 
   const oldSpread = spreads[currentIndex];
@@ -415,10 +462,6 @@ function turnEdgePage(targetIndex, direction) {
 
   const layers = [];
 
-  /*
-    單頁 → 雙頁
-    例如：封面翻開到第一個內頁。
-  */
   if (
     oldSpread.type !== "spread" &&
     targetSpread.type === "spread"
@@ -467,19 +510,20 @@ function turnEdgePage(targetIndex, direction) {
       }
     );
 
+    activeAnimations.push(animation);
+
     animation.finished
       .catch(() => {})
       .then(() => {
-        finishEdgeTransition(targetIndex, layers);
+        if (runToken !== transitionToken) return;
+
+        removeAnimation(animation);
+        finishEdgeTransition(targetIndex, layers, runToken);
       });
 
     return;
   }
 
-  /*
-    雙頁 → 單頁
-    例如：最後內頁翻到封底。
-  */
   if (
     oldSpread.type === "spread" &&
     targetSpread.type !== "spread"
@@ -497,7 +541,7 @@ function turnEdgePage(targetIndex, direction) {
 
     layers.push(oldLayer);
 
-    oldLayer.animate(
+    const fadeAnimation = oldLayer.animate(
       [
         {
           opacity: 1,
@@ -518,6 +562,8 @@ function turnEdgePage(targetIndex, direction) {
         fill: "forwards"
       }
     );
+
+    activeAnimations.push(fadeAnimation);
 
     const flipLayer = document.createElement("div");
     flipLayer.className = `flip-layer ${direction}`;
@@ -560,23 +606,27 @@ function turnEdgePage(targetIndex, direction) {
       }
     );
 
+    activeAnimations.push(animation);
+
     animation.finished
       .catch(() => {})
       .then(() => {
-        finishEdgeTransition(targetIndex, layers);
+        if (runToken !== transitionToken) return;
+
+        removeAnimation(animation);
+        removeAnimation(fadeAnimation);
+        finishEdgeTransition(targetIndex, layers, runToken);
       });
 
     return;
   }
 
-  finishEdgeTransition(targetIndex, layers);
+  finishEdgeTransition(targetIndex, layers, runToken);
 }
 
-/*
-  封面 / 封底轉場結束時，暫時關閉 #book 的 transition，
-  避免真正的 #book 回到畫面中央時又彈跳一次。
-*/
-function finishEdgeTransition(targetIndex, layers) {
+function finishEdgeTransition(targetIndex, layers, runToken) {
+  if (runToken !== transitionToken) return;
+
   layers.forEach((layer) => {
     layer.remove();
   });
@@ -591,6 +641,8 @@ function finishEdgeTransition(targetIndex, layers) {
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
+      if (runToken !== transitionToken) return;
+
       book.style.transition = "";
 
       isAnimating = false;
@@ -663,6 +715,11 @@ function clamp(value, min, max) {
   );
 }
 
+function removeAnimation(animation) {
+  activeAnimations =
+    activeAnimations.filter((item) => item !== animation);
+}
+
 function cropCanvasToBlobUrl(sourceCanvas, side) {
   return new Promise((resolve, reject) => {
     const halfWidth = sourceCanvas.width / 2;
@@ -725,7 +782,6 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-/* 手機滑動：左滑下一頁，右滑上一頁 */
 book.addEventListener("touchstart", (e) => {
   const touch = e.touches[0];
 
@@ -753,6 +809,14 @@ book.addEventListener("touchend", (e) => {
   passive: true
 });
 
+window.addEventListener("resize", handleViewportChange);
+window.addEventListener("orientationchange", handleViewportChange);
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", handleViewportChange);
+  window.visualViewport.addEventListener("scroll", handleViewportChange);
+}
+
 window.addEventListener("beforeunload", () => {
   objectUrls.forEach((url) => URL.revokeObjectURL(url));
 });
@@ -768,7 +832,10 @@ loadBook().catch((err) => {
       white-space:pre-wrap;
       font-size:14px;
     ">
-${err.stack || err.message}
+錯誤名稱：${err.name || "未知"}
+錯誤訊息：${err.message || "沒有訊息"}
+
+${err.stack || ""}
     </pre>
   `;
 });
