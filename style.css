@@ -495,3 +495,27 @@ body {
     font-size: 12px;
   }
 }
+
+/* 避免手機縮放後殘留固定圖層 */
+.flip-layer,
+.under-layer,
+.fixed-sheet-layer {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* 降低手機雙擊縮放造成的殘影 */
+#book,
+.viewer {
+  touch-action: pan-x pan-y;
+}
+
+/* 避免 iOS Safari 縮放後留下舊合成層 */
+.sheet,
+.turning-page,
+.turning-face,
+.paper-page,
+.page-img {
+  -webkit-transform: translateZ(0);
+}
