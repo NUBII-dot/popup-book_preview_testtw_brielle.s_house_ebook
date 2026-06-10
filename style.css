@@ -18,9 +18,10 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+
+  touch-action: pan-x pan-y;
 }
 
-/* 書本容器 */
 #book {
   --max-book-height: calc(100dvh - 118px);
 
@@ -50,9 +51,10 @@ body {
   transition:
     width 0.42s cubic-bezier(.22,.75,.2,1),
     height 0.42s cubic-bezier(.22,.75,.2,1);
+
+  touch-action: pan-x pan-y;
 }
 
-/* 封面 / 封底 */
 #book.single {
   --page-w: var(--single-page-w);
 
@@ -60,7 +62,6 @@ body {
   height: calc(var(--page-w) * 1.4);
 }
 
-/* 內頁雙頁 */
 #book.spread-mode {
   --page-w: var(--spread-page-w);
 
@@ -68,7 +69,6 @@ body {
   height: calc(var(--page-w) * 1.4);
 }
 
-/* 書本底影 */
 #book::before {
   content: "";
 
@@ -85,7 +85,6 @@ body {
   z-index: -1;
 }
 
-/* 顯示中的頁面 */
 .sheet {
   position: absolute;
   inset: 0;
@@ -97,8 +96,11 @@ body {
   background: white;
 
   transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+
   transform-style: preserve-3d;
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 
   box-shadow:
     0 2px 6px rgba(0, 0, 0, 0.07),
@@ -110,7 +112,6 @@ body {
   width: 100%;
 }
 
-/* 單頁容器 */
 .paper-page {
   position: relative;
 
@@ -121,19 +122,17 @@ body {
   background: white;
 
   transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
-/* 封面封底 */
 .single-sheet .paper-page {
   width: 100%;
 }
 
-/* 內頁左右頁 */
 .spread-sheet .paper-page {
   width: 50%;
 }
 
-/* PDF 圖片 */
 .page-img {
   width: 100%;
   height: 100%;
@@ -144,9 +143,11 @@ body {
 
   user-select: none;
   pointer-events: none;
+
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
-/* 左頁靠書脊的柔和陰影 */
 .left-page::after {
   content: "";
 
@@ -169,7 +170,6 @@ body {
   opacity: 0.36;
 }
 
-/* 右頁靠書脊的柔和陰影 */
 .right-page::after {
   content: "";
 
@@ -192,7 +192,6 @@ body {
   opacity: 0.36;
 }
 
-/* 書脊 */
 .gutter {
   position: absolute;
 
@@ -235,7 +234,6 @@ body {
   box-shadow: none;
 }
 
-/* 內頁翻頁底層 */
 .under-layer {
   position: fixed;
 
@@ -249,6 +247,12 @@ body {
 
   pointer-events: none;
 
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+
   box-shadow:
     0 2px 6px rgba(0, 0, 0, 0.07),
     0 7px 13px rgba(0, 0, 0, 0.045);
@@ -258,7 +262,6 @@ body {
   width: 50%;
 }
 
-/* 封面 / 封底轉場使用的固定圖層 */
 .fixed-sheet-layer {
   position: fixed;
 
@@ -267,6 +270,12 @@ body {
   overflow: visible;
 
   transform-style: preserve-3d;
+
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .fixed-sheet-layer .sheet {
@@ -285,7 +294,6 @@ body {
   z-index: 996;
 }
 
-/* 翻動紙張外層 */
 .flip-layer {
   position: fixed;
 
@@ -297,9 +305,14 @@ body {
   pointer-events: none;
 
   overflow: visible;
+
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
-/* 真正翻動的紙 */
 .turning-page {
   position: absolute;
   inset: 0;
@@ -315,7 +328,6 @@ body {
     0 12px 22px rgba(0,0,0,0.07);
 }
 
-/* 紙張正反面 */
 .turning-face {
   position: absolute;
   inset: 0;
@@ -326,6 +338,9 @@ body {
 
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .turning-face.back {
@@ -344,7 +359,6 @@ body {
   pointer-events: none;
 }
 
-/* 翻頁光影 */
 .turning-face::after {
   content: "";
 
@@ -376,17 +390,14 @@ body {
   opacity: 0.2;
 }
 
-/* 下一頁：往左翻 */
 .flip-layer.next .turning-page {
   transform-origin: left center;
 }
 
-/* 上一頁：往右翻 */
 .flip-layer.prev .turning-page {
   transform-origin: right center;
 }
 
-/* 按鈕區 */
 .controls {
   position: fixed;
 
@@ -437,7 +448,6 @@ body {
   color: #666;
 }
 
-/* 手機直向：完整顯示，不裁切 */
 @media (max-width: 700px) {
   #book {
     --max-book-height: calc(100dvh - 106px);
@@ -467,7 +477,6 @@ body {
   }
 }
 
-/* 手機橫向：盡量放大，但仍完整顯示 */
 @media (max-height: 520px) and (orientation: landscape) {
   #book {
     --max-book-height: calc(100dvh - 72px);
@@ -494,28 +503,4 @@ body {
     padding: 7px 16px;
     font-size: 12px;
   }
-}
-
-/* 避免手機縮放後殘留固定圖層 */
-.flip-layer,
-.under-layer,
-.fixed-sheet-layer {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-/* 降低手機雙擊縮放造成的殘影 */
-#book,
-.viewer {
-  touch-action: pan-x pan-y;
-}
-
-/* 避免 iOS Safari 縮放後留下舊合成層 */
-.sheet,
-.turning-page,
-.turning-face,
-.paper-page,
-.page-img {
-  -webkit-transform: translateZ(0);
 }
