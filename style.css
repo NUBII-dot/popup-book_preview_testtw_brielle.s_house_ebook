@@ -1,0 +1,497 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+
+  width: 100%;
+  height: 100%;
+
+  overflow: hidden;
+
+  background: #d8d8d8;
+}
+
+.viewer {
+  width: 100vw;
+  height: 100dvh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 書本容器 */
+#book {
+  --max-book-height: calc(100dvh - 118px);
+
+  --single-page-w: min(
+    500px,
+    calc(100vw - 36px),
+    calc(var(--max-book-height) / 1.4)
+  );
+
+  --spread-page-w: min(
+    500px,
+    calc((100vw - 36px) / 2),
+    calc(var(--max-book-height) / 1.4)
+  );
+
+  --page-w: var(--single-page-w);
+  --page-h: calc(var(--page-w) * 1.4);
+
+  width: var(--page-w);
+  height: var(--page-h);
+
+  position: relative;
+
+  perspective: 3200px;
+  transform-style: preserve-3d;
+
+  transition:
+    width 0.42s cubic-bezier(.22,.75,.2,1),
+    height 0.42s cubic-bezier(.22,.75,.2,1);
+}
+
+/* 封面 / 封底 */
+#book.single {
+  --page-w: var(--single-page-w);
+
+  width: var(--page-w);
+  height: calc(var(--page-w) * 1.4);
+}
+
+/* 內頁雙頁 */
+#book.spread-mode {
+  --page-w: var(--spread-page-w);
+
+  width: calc(var(--page-w) * 2);
+  height: calc(var(--page-w) * 1.4);
+}
+
+/* 書本底影 */
+#book::before {
+  content: "";
+
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -11px;
+
+  height: 13px;
+
+  background: rgba(0, 0, 0, 0.09);
+  border-radius: 50%;
+
+  z-index: -1;
+}
+
+/* 顯示中的頁面 */
+.sheet {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+
+  overflow: hidden;
+
+  background: white;
+
+  transform: translateZ(0);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.07),
+    0 7px 13px rgba(0, 0, 0, 0.045);
+}
+
+.single-sheet,
+.spread-sheet {
+  width: 100%;
+}
+
+/* 單頁容器 */
+.paper-page {
+  position: relative;
+
+  height: 100%;
+
+  overflow: hidden;
+
+  background: white;
+
+  transform: translateZ(0);
+}
+
+/* 封面封底 */
+.single-sheet .paper-page {
+  width: 100%;
+}
+
+/* 內頁左右頁 */
+.spread-sheet .paper-page {
+  width: 50%;
+}
+
+/* PDF 圖片 */
+.page-img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+
+  user-select: none;
+  pointer-events: none;
+}
+
+/* 左頁靠書脊的柔和陰影 */
+.left-page::after {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  right: 0;
+
+  width: 16px;
+  height: 100%;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255,255,255,0),
+      rgba(0,0,0,0.07)
+    );
+
+  opacity: 0.36;
+}
+
+/* 右頁靠書脊的柔和陰影 */
+.right-page::after {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 16px;
+  height: 100%;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0,0,0,0.07),
+      rgba(255,255,255,0)
+    );
+
+  opacity: 0.36;
+}
+
+/* 書脊 */
+.gutter {
+  position: absolute;
+
+  top: 0;
+  bottom: 0;
+  left: 50%;
+
+  width: 14px;
+
+  transform: translateX(-50%);
+
+  pointer-events: none;
+
+  z-index: 7;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0,0,0,0.035) 0%,
+      rgba(255,255,255,0.10) 35%,
+      rgba(0,0,0,0.095) 50%,
+      rgba(255,255,255,0.10) 65%,
+      rgba(0,0,0,0.035) 100%
+    );
+
+  mix-blend-mode: multiply;
+
+  opacity: 0.28;
+}
+
+.left-page {
+  box-shadow: inset -1px 0 0 rgba(0,0,0,0.025);
+}
+
+.right-page {
+  box-shadow: inset 1px 0 0 rgba(0,0,0,0.025);
+}
+
+.single-page {
+  box-shadow: none;
+}
+
+/* 內頁翻頁底層 */
+.under-layer {
+  position: fixed;
+
+  z-index: 998;
+
+  display: flex;
+
+  overflow: hidden;
+
+  background: white;
+
+  pointer-events: none;
+
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.07),
+    0 7px 13px rgba(0, 0, 0, 0.045);
+}
+
+.under-layer .paper-page {
+  width: 50%;
+}
+
+/* 封面 / 封底轉場使用的固定圖層 */
+.fixed-sheet-layer {
+  position: fixed;
+
+  pointer-events: none;
+
+  overflow: visible;
+
+  transform-style: preserve-3d;
+}
+
+.fixed-sheet-layer .sheet {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+}
+
+.edge-under {
+  z-index: 997;
+}
+
+.edge-old {
+  z-index: 996;
+}
+
+/* 翻動紙張外層 */
+.flip-layer {
+  position: fixed;
+
+  z-index: 999;
+
+  perspective: 3200px;
+  transform-style: preserve-3d;
+
+  pointer-events: none;
+
+  overflow: visible;
+}
+
+/* 真正翻動的紙 */
+.turning-page {
+  position: absolute;
+  inset: 0;
+
+  transform-style: preserve-3d;
+
+  will-change: transform;
+
+  background: white;
+
+  box-shadow:
+    0 5px 12px rgba(0,0,0,0.14),
+    0 12px 22px rgba(0,0,0,0.07);
+}
+
+/* 紙張正反面 */
+.turning-face {
+  position: absolute;
+  inset: 0;
+
+  overflow: hidden;
+
+  background: white;
+
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.turning-face.back {
+  transform: rotateY(180deg);
+}
+
+.turning-face img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+
+  user-select: none;
+  pointer-events: none;
+}
+
+/* 翻頁光影 */
+.turning-face::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255,255,255,0.14),
+      rgba(0,0,0,0.07),
+      rgba(0,0,0,0.16)
+    );
+
+  opacity: 0.2;
+}
+
+.turning-face.back::after {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0,0,0,0.14),
+      rgba(0,0,0,0.05),
+      rgba(255,255,255,0.14)
+    );
+
+  opacity: 0.2;
+}
+
+/* 下一頁：往左翻 */
+.flip-layer.next .turning-page {
+  transform-origin: left center;
+}
+
+/* 上一頁：往右翻 */
+.flip-layer.prev .turning-page {
+  transform-origin: right center;
+}
+
+/* 按鈕區 */
+.controls {
+  position: fixed;
+
+  left: 50%;
+  bottom: 24px;
+
+  transform: translateX(-50%);
+
+  display: flex;
+  gap: 14px;
+
+  z-index: 9999;
+}
+
+#prev,
+#next {
+  padding: 10px 22px;
+
+  border: none;
+  border-radius: 999px;
+
+  background: black;
+  color: white;
+
+  font-size: 14px;
+
+  cursor: pointer;
+
+  -webkit-tap-highlight-color: transparent;
+}
+
+#prev:active,
+#next:active {
+  transform: scale(0.96);
+}
+
+.loading {
+  width: 100%;
+  height: 100%;
+
+  background: white;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  font-family: sans-serif;
+  color: #666;
+}
+
+/* 手機直向：完整顯示，不裁切 */
+@media (max-width: 700px) {
+  #book {
+    --max-book-height: calc(100dvh - 106px);
+
+    --single-page-w: min(
+      430px,
+      calc(100vw - 28px),
+      calc(var(--max-book-height) / 1.4)
+    );
+
+    --spread-page-w: min(
+      430px,
+      calc((100vw - 28px) / 2),
+      calc(var(--max-book-height) / 1.4)
+    );
+  }
+
+  .controls {
+    bottom: 16px;
+    gap: 10px;
+  }
+
+  #prev,
+  #next {
+    padding: 9px 18px;
+    font-size: 13px;
+  }
+}
+
+/* 手機橫向：盡量放大，但仍完整顯示 */
+@media (max-height: 520px) and (orientation: landscape) {
+  #book {
+    --max-book-height: calc(100dvh - 72px);
+
+    --single-page-w: min(
+      420px,
+      calc(100vw - 40px),
+      calc(var(--max-book-height) / 1.4)
+    );
+
+    --spread-page-w: min(
+      420px,
+      calc((100vw - 40px) / 2),
+      calc(var(--max-book-height) / 1.4)
+    );
+  }
+
+  .controls {
+    bottom: 10px;
+  }
+
+  #prev,
+  #next {
+    padding: 7px 16px;
+    font-size: 12px;
+  }
+}
