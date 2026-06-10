@@ -8,8 +8,8 @@ const nextBtn = document.getElementById("next");
 const prevBtn = document.getElementById("prev");
 
 /*
-  卡頓就改成 1.2
-  想更清楚就改成 1.6
+  如果手機或電腦卡頓，可改成 1.2
+  如果想更清晰，可改成 1.6
 */
 const RENDER_SCALE = 1.45;
 
@@ -24,7 +24,7 @@ const FLIP_DURATION = 1450;
 const EDGE_DURATION = 1400;
 
 /*
-  動畫中可以繼續按，會排隊接著翻
+  動畫中繼續按會排隊接著翻
 */
 const MAX_QUEUE = 8;
 
@@ -320,7 +320,7 @@ function handleViewportChange() {
 
   resizeTimer = setTimeout(() => {
     cleanupFloatingLayers();
-  }, 160);
+  }, 180);
 }
 
 function goToSpread(targetIndex, direction) {
@@ -783,6 +783,8 @@ document.addEventListener("keydown", (e) => {
 });
 
 book.addEventListener("touchstart", (e) => {
+  if (e.touches.length !== 1) return;
+
   const touch = e.touches[0];
 
   touchStartX = touch.clientX;
@@ -792,6 +794,8 @@ book.addEventListener("touchstart", (e) => {
 });
 
 book.addEventListener("touchend", (e) => {
+  if (e.changedTouches.length !== 1) return;
+
   const touch = e.changedTouches[0];
 
   const dx = touch.clientX - touchStartX;
@@ -814,7 +818,6 @@ window.addEventListener("orientationchange", handleViewportChange);
 
 if (window.visualViewport) {
   window.visualViewport.addEventListener("resize", handleViewportChange);
-  window.visualViewport.addEventListener("scroll", handleViewportChange);
 }
 
 window.addEventListener("beforeunload", () => {
